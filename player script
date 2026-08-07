@@ -1,0 +1,114 @@
+extends CharacterBody2D
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var player_animation: AnimatedSprite2D = $"player animation"
+@onready var timer: Timer = $Timer
+@onready var hitbox_area: Area2D = $hitbox_area
+@onready var hitbox: CollisionShape2D = $hitbox_area/hitbox
+@onready var pivot: Node2D = $pivot
+@onready var hetbox_player: CollisionShape2D = $hetbox_player
+@onready var time: Node = $time
+@onready var hit_timer: Timer = $"hit timer"
+
+var SPEED = 300
+const JUMP_VELOCITY = -400
+var is_dashing = false
+var is_attack=false
+
+
+
+func animations(direction: float) ->void:
+	if is_attack:
+		if player_animation.animation != "D. basic attack":
+			player_animation.play("D. basic attack")
+			return 
+	elif is_dashing:
+		if player_animation.animation!="J. dash":
+			player_animation.play("J. dash")
+	
+	elif not is_on_floor():
+		if player_animation.animation!="F. jump":
+			player_animation.play("F. jump")
+		if direction != 0:
+			player_animation.flip_h = (direction <0)
+
+	elif velocity.x !=0 :
+		if player_animation.animation!="B. walking":
+			player_animation.play("B. walking")
+		player_animation.flip_h = (direction < 0)
+
+	else: 
+		if player_animation.animation!="A. standing aimation":
+			player_animation.play("A. standing aimation")
+		
+	
+	
+func _physics_process(delta: float) -> void:
+	var boxposetion = 15
+	var boxposetopn2=1
+	
+	# Add the gravity.
+	if not is_on_floor():
+		velocity += get_gravity() * delta
+	# Handle jump.
+	if Input.is_action_just_pressed("jump") and is_on_floor():
+		velocity.y = JUMP_VELOCITY
+
+	# Get the input direction and handle the movement
+	var direction := Input.get_axis("go_left", "go_right")
+	if direction < 0:
+		hitbox.position.x = -abs(hitbox.position.x)
+		hetbox_player.position.x = -abs(hetbox_player.position.x +  boxposetion) 
+	elif direction > 0:
+		hetbox_player.position.x = abs(hetbox_player.position.x  * boxposetopn2)
+		hitbox.position.x = abs(hitbox.position.x)  
+
+	#dash 
+	if Input.is_action_just_pressed("dash"):
+		is_dashing = true
+		SPEED*=10
+		velocity.x=direction*SPEED
+		if velocity.x==0:
+			is_dashing=false
+		timer.start()
+
+	# Handle movement logic 
+	if direction != 0 and is_on_floor():
+		velocity.x = direction * SPEED
+	elif direction !=0 and not is_on_floor():
+		velocity.x = direction * SPEED
+	
+	
+
+	else:
+		velocity.x = move_toward(velocity.x, 0, SPEED)
+	
+	#attack
+	if Input.is_action_just_pressed("basic_attack") and is_attack== false:
+		is_attack=true
+		hitbox.disabled = false
+		hit_timer.start()
+		
+		
+		
+		
+	
+	move_and_slide()
+	# charecter aniamtions
+	animations(direction)
+
+
+func _on_timer_timeout() -> void:
+	SPEED=300
+	is_dashing = false
+	
+	
+	
+	
+func _on_player_animation_animation_finished() -> void:
+	if player_animation.animation=="D. basic attack":
+		hitbox.disabled = true
+		is_attack=false
+
+
+func _on_hit_timer_timeout() -> void:
+	player_animation.play("incase_bug")
