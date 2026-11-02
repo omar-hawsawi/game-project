@@ -1,0 +1,59 @@
+extends CharacterBody2D
+@onready var mosnter_animation: AnimatedSprite2D = $"mosnter animation"
+@onready var timer: Timer = $Timer
+@onready var looking: RayCast2D = $looking
+var see_target = false
+var is_attack=false
+@onready var animation_timer: Timer = $"animation timer"
+@onready var cant_see: Timer = $cant_see
+@onready var area_2d: Area2D = $Area2D
+@onready var player: CharacterBody2D = $"player"
+@onready var close_by: Area2D = $close_by
+var player_in_area=false
+
+func _physics_process(delta: float) -> void:
+	
+	close_by.body_entered.connect(_on_close_by_area_entered)
+	if player_in_area:
+		looking_for()
+	cant_see.start()
+	move_and_slide()
+
+
+func _on_timer_timeout() -> void:
+	if not player_in_area:
+		return 
+	if mosnter_animation.animation!="1.shoot":
+		mosnter_animation.play("1.shoot")
+		animation_timer.start()
+
+
+
+
+func _on_animation_timer_timeout() -> void:
+	if player_in_area:
+		looking.enabled = true
+
+func looking_for() -> void:
+	if looking.is_colliding():
+		if mosnter_animation.animation != "1. shargging ":
+			mosnter_animation.play("1. shargging ")
+			looking.enabled=false
+			if timer.is_stopped():
+				timer.start()
+
+func _on_close_by_area_entered(body) -> void:
+	if body.name=="player" :
+		player_in_area = true
+		looking.enabled = true
+		mosnter_animation.play("1.awake")
+
+
+func _on_close_by_body_shape_exited(body_rid: RID, body: Node2D, body_shape_index: int, local_shape_index: int) -> void:
+	if body.name == "player":
+		player_in_area = false
+		# stop everything so nothing restarts the shoot animation
+		timer.stop()
+		animation_timer.stop()
+		looking.enabled = false
+		mosnter_animation.play("1.back to sleep")
